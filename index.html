@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>#JayKiMuskan Drive</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootswatch@5.0.0/dist/slate/bootstrap.min.css" rel="stylesheet">
+
+<style>
+body { background:#0d1117; color:white; font-family:sans-serif; }
+.card { background:#161b22; border-radius:12px; padding:15px; margin:10px; transition:0.3s; }
+.card:hover { transform:scale(1.05); }
+input { margin-bottom:15px; }
+.header { text-align:center; margin-bottom:20px; }
+</style>
+</head>
+
+<body>
+
+<div class="container mt-4">
+
+<div class="header">
+<h2>#JayKiMuskan Drive</h2>
+<p>Premium File Access Portal</p>
+</div>
+
+<!-- LOGIN -->
+<div id="loginBox">
+  <input id="user" class="form-control" placeholder="Username">
+  <input id="pass" type="password" class="form-control" placeholder="Password">
+  <button onclick="login()" class="btn btn-danger w-100">Login</button>
+</div>
+
+<!-- MAIN -->
+<div id="main" style="display:none;">
+
+<input type="text" id="search" class="form-control" placeholder="🔎 Search files..." onkeyup="filterFiles()">
+
+<div id="files" class="row"></div>
+
+</div>
+
+</div>
+
+<script>
+
+const API_KEY = "AIzaSyCnb9UMKk4_GvYTKUXTaHhXn_Vc_8N1-3E";
+const FOLDER_ID = "1zF9LYqZ5tsEjXlNGqc04r6UUAVHVi-Ck";
+
+let allFiles = [];
+
+// LOGIN
+function login(){
+  let u = document.getElementById("user").value;
+  let p = document.getElementById("pass").value;
+
+  if(u === "jaykimuski" && p === "jaykimuski"){
+    document.getElementById("loginBox").style.display="none";
+    document.getElementById("main").style.display="block";
+    loadFiles();
+  } else {
+    alert("Wrong Login");
+  }
+}
+
+// LOAD FILES
+function loadFiles(){
+  fetch(`https://www.googleapis.com/drive/v3/files?q='${FOLDER_ID}'+in+parents&key=${API_KEY}`)
+  .then(res=>res.json())
+  .then(data=>{
+    allFiles = data.files;
+    displayFiles(allFiles);
+  });
+}
+
+// DISPLAY FILES
+function displayFiles(files){
+  let html="";
+  files.forEach(f=>{
+    html += `
+    <div class="col-md-3">
+      <div class="card">
+        <h6>${f.name}</h6>
+        <a href="https://drive.google.com/file/d/${f.id}/view" target="_blank" class="btn btn-sm btn-danger">Open</a>
+      </div>
+    </div>`;
+  });
+  document.getElementById("files").innerHTML = html;
+}
+
+// SEARCH
+function filterFiles(){
+  let q = document.getElementById("search").value.toLowerCase();
+  let filtered = allFiles.filter(f => f.name.toLowerCase().includes(q));
+  displayFiles(filtered);
+}
+
+</script>
+
+</body>
+</html>
