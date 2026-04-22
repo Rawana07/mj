@@ -6,13 +6,14 @@
 <title>#JayKiMuskan Drive</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.0.0/dist/slate/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
 <style>
-body { background:#0d1117; color:white; font-family:sans-serif; }
+body { background:#0d1117; color:white; }
 .card { background:#161b22; border-radius:12px; padding:15px; margin:10px; transition:0.3s; }
 .card:hover { transform:scale(1.05); }
-input { margin-bottom:15px; }
 .header { text-align:center; margin-bottom:20px; }
+.preview { width:100%; border-radius:10px; margin-top:10px; }
 </style>
 </head>
 
@@ -27,15 +28,17 @@ input { margin-bottom:15px; }
 
 <!-- LOGIN -->
 <div id="loginBox">
-  <input id="user" class="form-control" placeholder="Username">
-  <input id="pass" type="password" class="form-control" placeholder="Password">
+  <input id="user" class="form-control mb-2" placeholder="Username">
+  <input id="pass" type="password" class="form-control mb-2" placeholder="Password">
   <button onclick="login()" class="btn btn-danger w-100">Login</button>
 </div>
 
 <!-- MAIN -->
 <div id="main" style="display:none;">
 
-<input type="text" id="search" class="form-control" placeholder="🔎 Search files..." onkeyup="filterFiles()">
+<button onclick="goBack()" class="btn btn-secondary mb-2">⬅ Back</button>
+
+<input type="text" id="search" class="form-control mb-3" placeholder="🔎 Search files..." onkeyup="filterFiles()">
 
 <div id="files" class="row"></div>
 
@@ -46,27 +49,26 @@ input { margin-bottom:15px; }
 <script>
 
 const API_KEY = "AIzaSyCnb9UMKk4_GvYTKUXTaHhXn_Vc_8N1-3E";
-const FOLDER_ID = "1zF9LYqZ5tsEjXlNGqc04r6UUAVHVi-Ck";
+const ROOT_FOLDER = "1zF9LYqZ5tsEjXlNGqc04r6UUAVHVi-Ck";
 
+let currentFolder = ROOT_FOLDER;
+let historyStack = [];
 let allFiles = [];
 
 // LOGIN
 function login(){
-  let u = document.getElementById("user").value;
-  let p = document.getElementById("pass").value;
-
-  if(u === "jaykimuski" && p === "jaykimuski"){
-    document.getElementById("loginBox").style.display="none";
-    document.getElementById("main").style.display="block";
-    loadFiles();
-  } else {
-    alert("Wrong Login");
-  }
+  if(user.value==="jaykimuski" && pass.value==="jaykimuski"){
+    loginBox.style.display="none";
+    main.style.display="block";
+    loadFiles(ROOT_FOLDER);
+  } else alert("Wrong Login");
 }
 
 // LOAD FILES
-function loadFiles(){
-  fetch(`https://www.googleapis.com/drive/v3/files?q='${FOLDER_ID}'+in+parents&key=${API_KEY}`)
+function loadFiles(folderId){
+  currentFolder = folderId;
+
+  fetch(`https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&key=${API_KEY}&fields=files(id,name,mimeType)`)
   .then(res=>res.json())
   .then(data=>{
     allFiles = data.files;
@@ -78,22 +80,65 @@ function loadFiles(){
 function displayFiles(files){
   let html="";
   files.forEach(f=>{
+
+    let isFolder = f.mimeType === "application/vnd.google-apps.folder";
+
     html += `
     <div class="col-md-3">
       <div class="card">
         <h6>${f.name}</h6>
-        <a href="https://drive.google.com/file/d/${f.id}/view" target="_blank" class="btn btn-sm btn-danger">Open</a>
+
+        ${
+          isFolder
+          ? `<button onclick="openFolder('${f.id}')" class="btn btn-warning btn-sm"><i class="bi bi-folder"></i> Open</button>`
+          : getFileUI(f)
+        }
+
       </div>
     </div>`;
   });
+
   document.getElementById("files").innerHTML = html;
+}
+
+// FILE UI (preview + download)
+function getFileUI(f){
+  let preview = "";
+  
+  if(f.mimeType.includes("video")){
+    preview = `<video class="preview" controls src="https://drive.google.com/uc?id=${f.id}&export=download"></video>`;
+  }
+  else if(f.mimeType.includes("image")){
+    preview = `<img class="preview" src="https://drive.google.com/uc?id=${f.id}">`;
+  }
+  else if(f.mimeType.includes("pdf")){
+    preview = `<iframe class="preview" height="200" src="https://drive.google.com/file/d/${f.id}/preview"></iframe>`;
+  }
+
+  return `
+    ${preview}
+    <a href="https://drive.google.com/uc?id=${f.id}&export=download" class="btn btn-success btn-sm mt-2">
+      <i class="bi bi-download"></i> Download
+    </a>`;
+}
+
+// OPEN FOLDER
+function openFolder(id){
+  historyStack.push(currentFolder);
+  loadFiles(id);
+}
+
+// BACK
+function goBack(){
+  if(historyStack.length > 0){
+    loadFiles(historyStack.pop());
+  }
 }
 
 // SEARCH
 function filterFiles(){
-  let q = document.getElementById("search").value.toLowerCase();
-  let filtered = allFiles.filter(f => f.name.toLowerCase().includes(q));
-  displayFiles(filtered);
+  let q = search.value.toLowerCase();
+  displayFiles(allFiles.filter(f => f.name.toLowerCase().includes(q)));
 }
 
 </script>
